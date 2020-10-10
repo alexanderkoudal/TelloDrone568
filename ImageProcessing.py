@@ -45,14 +45,21 @@ def Image():
      #Contrast and Brightness
     CandB = np.zeros(image.shape, image.dtype)
     alpha = 1
-    beta = 3
+    beta = 0
     CandB = cv2.convertScaleAbs(resized, alpha=alpha, beta=beta)
     cv2.imshow('Constrast and Brightness', CandB)
     cv2.waitKey(0)
     # cv2.destroyAllWindows()
     
+    # Gaussian Blur
+    #ksize = (10,10)
+    blur = cv2.GaussianBlur(CandB, (1, 1), 0)
+    cv2.imshow('Gaussian Blur', CandB)
+    cv2.waitKey(0)
+
+
     #Convert the image to HSV
-    HSV = cv2.cvtColor(CandB, cv2.COLOR_BGR2HSV)
+    HSV = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
     cv2.imshow('HSV', HSV)
     cv2.waitKey(0)
     #cv2.destroyAllWindows()
@@ -76,8 +83,8 @@ def Image():
     #light_orange = (25, 0, 0)
     #dark_orange = (75, 70, 50)
 
-    light_orange = (0, 0, 0)
-    dark_orange = (90, 90, 60)
+    light_orange = (25, 0, 0)
+    dark_orange = (75, 70, 50)
 
     # lo_square = np.full((10, 10, 3), light_orange, dtype=np.uint8) / 255.0
     # do_square = np.full((10, 10, 3), dark_orange, dtype=np.uint8) / 255.0
@@ -119,10 +126,38 @@ def Image():
     cv2.imshow("vertical", vertical)
     cv2.waitKey(0)
 
-    final = vertical - horizontal
-    cv2.imshow("final", final)
+    #Sobel
+    sobelx = cv2.Sobel(vertical,cv2.CV_8U,1,0,ksize=3)
+    cv2.imshow('Sobel', sobelx)
+    cv2.waitKey(0)
+  
+    # DIlation
+    kernel = np.ones((3,3),np.uint8)
+    dilation = cv2.dilate(sobelx,kernel,iterations = 1)
+    cv2.imshow('Dilation', dilation)
     cv2.waitKey(0)
 
+    # find contours in the binary image
+    contours, hierarchy = cv2.findContours(dilation,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    for c in contours:
+        # calculate moments for each contour
+        M = cv2.moments(c)
+
+        # calculate x,y coordinate of center
+        cX = int(M["m10"] / M["m00"])
+        cX2 = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        cY2 = int(M["m01"] / M["m00"]) - 50
+        cv2.circle(resized, (cX, cY), 5, (255, 255, 255), -1)
+        cv2.circle(resized, (cX2, cY2), 5, (255, 255, 255), -1)
+
+        cv2.putText(resized, "center", (cX - 35, cY - 0),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        cv2.putText(resized, "second point", (cX2 - 30, cY2 - 10),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        cv2.line(resized, (cX, cY), (cX2, cY2), (0, 0, 255), thickness=2)
+
+        # display the image
+        cv2.imshow("Center Points", resized)
+        cv2.waitKey(0)
 
 
 
